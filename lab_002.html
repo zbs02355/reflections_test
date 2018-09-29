@@ -11,12 +11,14 @@
 	</style>
 </head>
 <body>
-	<div id="WebGL-draw" onmousedown="changeCamera()">  
+	<div id="WebGL-draw" onmousedown="changeAmbientLight()">  
 		
 	</div>
 	<script type="text/javascript">
-		var scene, camera, renderer, planeGeometry;
+		var scene, camera, renderer, planeGeometry, ambientColor, ambientLight;
+		var flag; 
 		function init() {
+			flag = 0;
 			/*创建场景、摄像机、渲染器*/
 			scene = new THREE.Scene();
 			//scene.fog = new THREE.Fog(0xffffff,5,120); //添加大雾
@@ -70,7 +72,8 @@
 			scene.add(spotLight); 
 			
 			/*添加一个环境光*/
-			var ambientLight = new THREE.AmbientLight(0x0e0e0e);
+			ambientColor = "#0c0c0c"; //创建一个存放环境光颜色的变量
+			ambientLight = new THREE.AmbientLight(ambientColor);
 			scene.add(ambientLight);
 			
 			/*设置摄像机参数*/
@@ -104,6 +107,23 @@
 				camera.position.y = 50; 
 				camera.position.z = 180;
 				camera.lookAt(scene.position);
+			}
+		}
+		//修改环境光颜色
+		function changeAmbientLight(){
+			flag++;
+			//先对flag标志进行判断，达到3立即归零
+			if(flag == 3){
+				flag = 0;
+			}
+			if(flag == 0){
+				ambientLight.color.setRGB(0.5, 0, 0); //环境光修改为红色
+			}
+			if(flag == 1){
+				ambientLight.color.setRGB(0, 0.5, 0); //环境光修改为绿色
+			}
+			if(flag == 2){
+				ambientLight.color.setRGB(0,0,0.5); //环境光修改为蓝色
 			}
 		}
 		function onResize(){
