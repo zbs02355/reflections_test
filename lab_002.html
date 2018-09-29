@@ -16,10 +16,9 @@
 	</div>
 	<script type="text/javascript">
 		var scene, camera, renderer, planeGeometry;
-		var flag, lightSphere; 
+		var flag; 
 		/*
-		*flag: 表示聚光灯的位置方向
-		*lightSphere: 表示聚光灯
+		*flag: 表示方向光的位置方向
 		*/
 		function init() {
 			flag = 0;
@@ -61,29 +60,29 @@
 			cube.castShadow = true;
 			scene.add(cube);
 
-			/*添加一个聚光灯*/
-			var spotColor = "#ffffff";
-			var spotLight = new THREE.SpotLight(spotColor);
-			//设置聚光灯参数
-			spotLight.position.set(30, 30, -10);
-			spotLight.castShadow = true;
-			spotLight.shadowCameraNear = 1;
-			spotLight.shadowCameraFar = 300;
-			spotLight.shadowCameraFov = 30;
-			spotLight.target = plane;  //设置聚光灯的对象为平面
-			spotLight.distance = 0;
-			spotLight.shadowCameraVisible = true; //开启聚光灯的绘制框
-
-			scene.add(spotLight);
+			/*添加一个方向光*/
+			var directLigntColor = "#ff7f00";
+			var directLight = new THREE.DirectionalLight(directLigntColor);
+			//设置方向光参数
+			directLight.position.set(30, 30, -10);
+			directLight.castShadow = true;
+			directLight.shadowCameraNear = 1;
+			directLight.shadowCameraFar = 300;
+			directLight.shadowCameraFov = 30;
+			directLight.target = plane;  //设置方向光的对象为平面
+			directLight.shadowCameraVisible = true;
+			directLight.shadowCameraLeft = -8;
+			directLight.shadowCameraRight = 8;
+			directLight.shadowCameraTop = 10;
+			directLight.shadowCameraBottom = -10;
+			scene.add(directLight);
 			
-			//创建一个小球，突出光源
-			var sphereLight = new THREE.SphereGeometry(0.3);
-			var sphereLightMaterial = new THREE.MeshLambertMaterial({color:0xff0000});
-			var sphereLightMesh = new THREE.Mesh(sphereLight, sphereLightMaterial);
-			//将小球的位置与光源重合
-			sphereLightMesh.position.copy(spotLight.position);
+			//添加一个聚光灯作为辅助光源
+			var spotLight0 = new THREE.SpotLight(0xffffff);
+			spotLight0.position.set(-30,400,-30);
+			spotLight0.lookAt(plane);
+			scene.add(spotLight0);
 
-			scene.add(sphereLightMesh);
 			/*设置摄像机参数*/
 			camera.position.x = 50; 
 			camera.position.y = 45; 
@@ -94,19 +93,19 @@
 			/*开始渲染*/
 			renderScene();
 			function renderScene(){
-				//让聚光灯在X轴的（-35，35）之间变化
-				if(flag==0 && spotLight.position.x < 35){
-					spotLight.position.x += 0.6;
-					spotLight.position.z += 0.6;
+				//让方向光在X轴的-55~55之间变化
+				if(flag==0 && directLight.position.x < 55){
+					directLight.position.x += 0.6;
+					directLight.position.z += 1.0;
 				}
-				if(flag==0 && spotLight.position.x > 35){
+				if(flag==0 && directLight.position.x > 55){
 					flag = 1;
 				}
-				if(flag == 1 && spotLight.position.x > -35){
-					spotLight.position.x -= 0.6;
-					spotLight.position.z -= 0.6;
+				if(flag == 1 && directLight.position.x > -55){
+					directLight.position.x -= 0.6;
+					directLight.position.z -= 1.0;
 				}
-				if(flag == 1 && spotLight.position.x < -35){
+				if(flag == 1 && directLight.position.x < -55){
 					flag = 0;
 				}
 				requestAnimationFrame(renderScene); //循环重绘
