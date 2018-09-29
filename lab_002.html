@@ -11,12 +11,16 @@
 	</style>
 </head>
 <body>
-	<div id="WebGL-draw" onmousedown="changeAmbientLight()">  
+	<div id="WebGL-draw">  
 		
 	</div>
 	<script type="text/javascript">
-		var scene, camera, renderer, planeGeometry, ambientColor, ambientLight;
-		var flag; 
+		var scene, camera, renderer, planeGeometry;
+		var flag, lightSphere; 
+		/*
+		*flag: 表示聚光灯的位置方向
+		*lightSphere: 表示聚光灯
+		*/
 		function init() {
 			flag = 0;
 			/*创建场景、摄像机、渲染器*/
@@ -34,7 +38,7 @@
 			scene.add(axis);
 			
 			/*创建二维平面*/
-			planeGeometry = new THREE.PlaneGeometry(180, 180); //建立180X180的平面
+			planeGeometry = new THREE.PlaneGeometry(150, 150); //建立180X180的平面
 			var planeMaterials = new THREE.MeshLambertMaterial({color: 0xffffff}); //创建暗淡的、无光的材质
 			var plane = new THREE.Mesh(planeGeometry, planeMaterials); //构建网格
 			plane.receiveShadow = true; //平面接受阴影
@@ -48,82 +52,65 @@
 			
 			
 			//创建立方体
-			var cubeGeometry = new THREE.BoxGeometry(4,4,4);
-			for(var i = 0; i < (plane.geometry.parameters.height / 5); i++ ){
-				for (var j = 0; j < (plane.geometry.parameters.width / 5); j++){
-					//为颜色创建随机变量
-					var rnd = Math.random() * 0.75 + 0.25;
-					var cubeMaterial = new THREE.MeshLambertMaterial();
-					cubeMaterial.color = new THREE.Color(rnd, rnd, 0);//设置颜色
-					var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-					
-					//改变立方体位置
-					cube.position.z = -(plane.geometry.parameters.height / 2) + 2 +(i*5);
-					cube.position.x = -(plane.geometry.parameters.width / 2) + 2 +(j*5);
-					cube.position.y = 2;
-					
-					scene.add(cube);
-				}
-			}
-			/*添加一个点光源*/
-			var spotLight = new THREE.SpotLight(0xffffff, 2); 
-			spotLight.castShadow = true; //开启阴影
-			spotLight.position.set(10, 60, -70); //设置点光源位置
-			scene.add(spotLight); 
+			var cubeGeometry = new THREE.CubeGeometry(10,10,10);
+			var cubeMaterial = new THREE.MeshLambertMaterial({color:0xff0000});
+			var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+			cube.position.x = 0;
+			cube.position.y = 5;
+			cube.position.z = 0;
+			cube.castShadow = true;
+			scene.add(cube);
+
+			/*添加一个聚光灯*/
+			var spotColor = "#ffffff";
+			var spotLight = new THREE.SpotLight(spotColor);
+			//设置聚光灯参数
+			spotLight.position.set(30, 30, -10);
+			spotLight.castShadow = true;
+			spotLight.shadowCameraNear = 1;
+			spotLight.shadowCameraFar = 300;
+			spotLight.shadowCameraFov = 30;
+			spotLight.target = plane;  //设置聚光灯的对象为平面
+			spotLight.distance = 0;
+			spotLight.shadowCameraVisible = true; //开启聚光灯的绘制框
+
+			scene.add(spotLight);
 			
-			/*添加一个环境光*/
-			ambientColor = "#0c0c0c"; //创建一个存放环境光颜色的变量
-			ambientLight = new THREE.AmbientLight(ambientColor);
-			scene.add(ambientLight);
-			
+			//创建一个小球，突出光源
+			var sphereLight = new THREE.SphereGeometry(0.3);
+			var sphereLightMaterial = new THREE.MeshLambertMaterial({color:0xff0000});
+			var sphereLightMesh = new THREE.Mesh(sphereLight, sphereLightMaterial);
+			//将小球的位置与光源重合
+			sphereLightMesh.position.copy(spotLight.position);
+
+			scene.add(sphereLightMesh);
 			/*设置摄像机参数*/
-			camera.position.x = 0; 
-			camera.position.y = 50; 
-			camera.position.z = 180;   //调整位置
+			camera.position.x = 50; 
+			camera.position.y = 45; 
+			camera.position.z = 150;   //调整位置
 			camera.lookAt(scene.position); //使相机始终朝向场景
 			document.getElementById('WebGL-draw').appendChild(renderer.domElement); 
 			//将渲染器画布添加到DOM树中
 			/*开始渲染*/
 			renderScene();
 			function renderScene(){
+				//让聚光灯在X轴的（-35，35）之间变化
+				if(flag==0 && spotLight.position.x < 35){
+					spotLight.position.x += 0.6;
+					spotLight.position.z += 0.6;
+				}
+				if(flag==0 && spotLight.position.x > 35){
+					flag = 1;
+				}
+				if(flag == 1 && spotLight.position.x > -35){
+					spotLight.position.x -= 0.6;
+					spotLight.position.z -= 0.6;
+				}
+				if(flag == 1 && spotLight.position.x < -35){
+					flag = 0;
+				}
 				requestAnimationFrame(renderScene); //循环重绘
 				renderer.render(scene, camera);
-			}
-		}
-		//修改相机类型
-		function changeCamera(){
-			if(camera instanceof THREE.PerspectiveCamera){
-				camera = new THREE.OrthographicCamera(window.innerWidth/-16, window.innerWidth/16, window.innerHeight/-16, window.innerHeight/16, -200, 500); //设置相机的左右上下前后
-				//改变相机位置
-				camera.position.x = 0;
-				camera.position.y = 50; 
-				camera.position.z = 180;
-				camera.lookAt(scene.position);
-			}
-			else if(camera instanceof THREE.OrthographicCamera){
-				camera = new THREE.PerspectiveCamera(45,window.innerWidth / window.innerHeight, 0.1, 1000) //设置相机的视角、实际窗口的纵横比、近裁剪面、远裁剪面
-				//改变相机位置
-				camera.position.x = 0;
-				camera.position.y = 50; 
-				camera.position.z = 180;
-				camera.lookAt(scene.position);
-			}
-		}
-		//修改环境光颜色
-		function changeAmbientLight(){
-			flag++;
-			//先对flag标志进行判断，达到3立即归零
-			if(flag == 3){
-				flag = 0;
-			}
-			if(flag == 0){
-				ambientLight.color.setRGB(0.5, 0, 0); //环境光修改为红色
-			}
-			if(flag == 1){
-				ambientLight.color.setRGB(0, 0.5, 0); //环境光修改为绿色
-			}
-			if(flag == 2){
-				ambientLight.color.setRGB(0,0,0.5); //环境光修改为蓝色
 			}
 		}
 		function onResize(){
