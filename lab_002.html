@@ -3,14 +3,7 @@
 <head>
 	<title>lab1-1</title>
 	<script type="text/javascript" src="libs/three.js"></script>
-	<script type="text/javascript" src="libs/CopyShader.js"></script>
-	<script type="text/javascript" src="libs/EffectComposer.js"></script>
-	<script type="text/javascript" src="libs/FXAAShader.js"></script>
-	<script type="text/javascript" src="libs/MaskPass.js"></script>
-	<script type="text/javascript" src="libs/RenderPass.js"></script>
-	<script type="text/javascript" src="libs/ShaderDeferred.js"></script>
-	<script type="text/javascript" src="libs/ShaderPass.js"></script>
-	<script type="text/javascript" src="libs/WebGLDeferredRenderer.js"></script>
+	
 	<style type="text/css">
 		body{
 			margin: 0;
@@ -30,60 +23,77 @@
 			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);//设置相机的视椎体
 			
 			//创建一个WebGLDeferredRenderer渲染器
-			renderer = new THREE.WebGLDeferredRenderer({
-            width: window.innerWidth,
-            height: window.innerHeight,
-            scale: 1, 
-			antialias: true,
-            tonemapping: THREE.FilmicOperator, 
-			brightness: 2.5
-			});
-			
+			renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+        	renderer.setClearColor(new THREE.Color(0xaaaaff, 1.0));
+        	renderer.setSize(window.innerWidth, window.innerHeight);
+        	renderer.shadowMapEnabled = true;
+
+        	/*创建二维平面*/
+			var planeGeometry = new THREE.PlaneGeometry(100, 100); //建立70X70的平面
+			var planeMaterials = new THREE.MeshLambertMaterial({color: 0xffffff}); //创建暗淡的、无光的材质
+			var plane = new THREE.Mesh(planeGeometry, planeMaterials); //构建网格
+			plane.receiveShadow = true; //平面接受阴影
+			/*修改二维平面*/
+			plane.rotation.x = -0.5 * Math.PI;
+			plane.position.x = 0;
+			plane.position.y = -5;
+			plane.position.z = 0;
+			/*把平面加入到场景中*/
+			scene.add(plane);
+
+        	//创建聚光灯
+        	var spotColor = "#ffffff";
+			var spotLight = new THREE.DirectionalLight(spotColor);
+        	spotLight.position.set(30,10,-50);
+        	spotLight.castShadow = true;
+        	spotLight.shadowCameraNear = 0.1;
+        	spotLight.shadowCameraFar = 100;
+        	spotLight.shadowCameraFov = 50;
+        	spotLight.target = plane;
+        	spotLight.distance = 0;
+        	spotLight.shadowCameraNear = 2;
+        	spotLight.shadowCameraFar = 200;
+        	spotLight.shadowCameraLeft = -100;
+        	spotLight.shadowCameraRight = 100;
+        	spotLight.shadowCameraTop = 100;
+        	spotLight.shadowCameraBottom = -100;
+        	spotLight.shadowMapWidth = 2048;
+        	spotLight.shadowMapHeight = 2048;
+        	scene.add(spotLight);
+
+			//定义镜头光晕对象
+			var textureFlare0 = THREE.ImageUtils.loadTexture("lensflare0.png");
+			var flareColor = new THREE.Color(0xffaacc);
+			var lensFlare = new THREE.LensFlare(textureFlare0, 350, 0.0, THREE.AdditiveBlending, flareColor);
+			//加载另一种贴图
+			var textureFlare3 = THREE.ImageUtils.loadTexture("lensflare3.png");
+			//添加光圈
+			lensFlare.add(textureFlare3, 60, 0.6, THREE.AdditiveBlending);
+			lensFlare.add(textureFlare3, 70, 0.8, THREE.AdditiveBlending);
+			lensFlare.add(textureFlare3, 120, 0.9, THREE.AdditiveBlending);
+			//调整光晕对象的位置
+			lensFlare.position.copy(spotLight.position);
+			scene.add(lensFlare);
+
 			/*添加坐标轴*/
 			var axis = new THREE.AxisHelper(140);
 			scene.add(axis);
-			
+
 			//创建立方体
-			var cubeGeometry = new THREE.CubeGeometry(15,15,15);
+			var cubeGeometry = new THREE.CubeGeometry(10,10,10);
 			var cubeMaterial = new THREE.MeshLambertMaterial({color:0xff0000});
 			var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
 			cube.position.x = 0;
 			cube.position.y = 0;
 			cube.position.z = 0;
+			cube.castShadow = true;
 			scene.add(cube);
 			
-			//创建地面
-			planeGeometry = new THREE.PlaneGeometry(70, 70);
-			var planeMaterial = new THREE.MeshPhongMaterial({color: 0xffffff, specular: 0xffffff, shininess: 200});//指定高光部分的颜色为白色；高光部分亮度为200
-			var plane = new THREE.Mesh(planeGeometry, planeMaterial);
-			//设置地面的位置
-			plane.rotation.x = -Math.PI / 2;
-			plane.position.x = 0;
-			plane.position.y = 15;
-			plane.position.z = 0;
-			scene.add(plane);
-			
-			//创建平面光 
-			var areaLight1 = new THREE.AreaLight(0xff0000, 3); //设置平面光的颜色和强度
-			areaLight1.position.set(10,20,-35);
-			areaLight1.rotation.set(-Math.PI/2, 0, 0);
-			//设置区域光面积
-			areaLight1.width = 4;
-			areaLight1.height = 9;
-			scene.add(areaLight1);
-			
-			//创建一个模拟平面光的平面
-			var planeGeometry1 = new THREE.BoxGeometry(4,10,0);
-			var planeMaterial1 = new THREE.MeshBasicMaterial({color:0xff0000});
-			var plane1 = new THREE.Mesh(planeGeometry1, planeMaterial1);
-			plane1.position.copy(areaLight1.position);
-			scene.add(plane1);
-			
 			/*设置摄像机参数*/
-			camera.position.x = 30; 
-			camera.position.y = 30; 
-			camera.position.z = 150;   //调整位置
-			camera.lookAt(scene.position); //使相机始终朝向场景
+			camera.position.x = -20; 
+			camera.position.y = 15; 
+			camera.position.z = 45;   //调整位置
+			camera.lookAt(new THREE.Vector3(10,0,0)); //使相机始终朝向场景
 			document.getElementById('WebGL-draw').appendChild(renderer.domElement); 
 			//将渲染器画布添加到DOM树中
 			/*开始渲染*/
