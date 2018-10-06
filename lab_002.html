@@ -16,76 +16,35 @@
 	</div>
 	<script type="text/javascript">
 		var scene, camera, renderer, planeGeometry;
-		var flag; 
-		/*
-		*flag: 表示方向光的位置方向
-		*/
 		function init() {
-			flag = 0;
 			/*创建场景、摄像机、渲染器*/
 			scene = new THREE.Scene();
-			//scene.fog = new THREE.Fog(0xffffff,5,120); //添加大雾
-			//scene.overrideMaterial = new THREE.MeshLambertMaterial({color:0xffff00}); //统一材质
 			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);//设置相机的视椎体
 			renderer = new THREE.WebGLRenderer();
 			/*设置渲染器*/
-			renderer.setClearColor(new THREE.Color(0xEEEEEE));  //设置渲染器背景色
+			renderer.setClearColor(new THREE.Color(0x800080));  //设置渲染器背景色
 			renderer.setSize(window.innerWidth, window.innerHeight); //设置渲染器大小
-			renderer.shadowMapEnabled = true; //开启阴影
 			/*添加坐标轴*/
-			var axis = new THREE.AxisHelper(50);
+			var axis = new THREE.AxisHelper(140);
 			scene.add(axis);
 			
-			/*创建二维平面*/
-			planeGeometry = new THREE.PlaneGeometry(150, 150); //建立180X180的平面
-			var planeMaterials = new THREE.MeshLambertMaterial({color: 0xffffff}); //创建暗淡的、无光的材质
-			var plane = new THREE.Mesh(planeGeometry, planeMaterials); //构建网格
-			plane.receiveShadow = true; //平面接受阴影
-			/*修改二维平面*/
-			plane.rotation.x = -0.5 * Math.PI;
-			plane.position.x = 0;
-			plane.position.y = 0;
-			plane.position.z = 0;
-			/*把平面加入到场景中*/
-			scene.add(plane);
-			
-			
 			//创建立方体
-			var cubeGeometry = new THREE.CubeGeometry(10,10,10);
+			var cubeGeometry = new THREE.CubeGeometry(15,15,15);
 			var cubeMaterial = new THREE.MeshLambertMaterial({color:0xff0000});
 			var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
 			cube.position.x = 0;
-			cube.position.y = 5;
+			cube.position.y = 0;
 			cube.position.z = 0;
-			cube.castShadow = true;
 			scene.add(cube);
-
-			/*添加一个方向光*/
-			var directLigntColor = "#ff7f00";
-			var directLight = new THREE.DirectionalLight(directLigntColor);
-			//设置方向光参数
-			directLight.position.set(30, 30, -10);
-			directLight.castShadow = true;
-			directLight.shadowCameraNear = 1;
-			directLight.shadowCameraFar = 300;
-			directLight.shadowCameraFov = 30;
-			directLight.target = plane;  //设置方向光的对象为平面
-			directLight.shadowCameraVisible = true;
-			directLight.shadowCameraLeft = -8;
-			directLight.shadowCameraRight = 8;
-			directLight.shadowCameraTop = 10;
-			directLight.shadowCameraBottom = -10;
-			scene.add(directLight);
+				
+			//添加一个半球光
+			var hemiLight = new THREE.HemisphereLight( 0x0000ff, 0xff0000, 10 );
+			hemiLight.position.set(0, 20, 0);
+			scene.add(hemiLight);
 			
-			//添加一个聚光灯作为辅助光源
-			var spotLight0 = new THREE.SpotLight(0xffffff);
-			spotLight0.position.set(-30,400,-30);
-			spotLight0.lookAt(plane);
-			scene.add(spotLight0);
-
 			/*设置摄像机参数*/
-			camera.position.x = 50; 
-			camera.position.y = 45; 
+			camera.position.x = 30; 
+			camera.position.y = 30; 
 			camera.position.z = 150;   //调整位置
 			camera.lookAt(scene.position); //使相机始终朝向场景
 			document.getElementById('WebGL-draw').appendChild(renderer.domElement); 
@@ -93,21 +52,9 @@
 			/*开始渲染*/
 			renderScene();
 			function renderScene(){
-				//让方向光在X轴的-55~55之间变化
-				if(flag==0 && directLight.position.x < 55){
-					directLight.position.x += 0.6;
-					directLight.position.z += 1.0;
-				}
-				if(flag==0 && directLight.position.x > 55){
-					flag = 1;
-				}
-				if(flag == 1 && directLight.position.x > -55){
-					directLight.position.x -= 0.6;
-					directLight.position.z -= 1.0;
-				}
-				if(flag == 1 && directLight.position.x < -55){
-					flag = 0;
-				}
+				cube.rotation.x += 0.02;
+				cube.rotation.y += 0.02;
+				cube.rotation.z += 0.02;
 				requestAnimationFrame(renderScene); //循环重绘
 				renderer.render(scene, camera);
 			}
