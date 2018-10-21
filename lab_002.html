@@ -3,9 +3,6 @@
 <head>
 	<title>lab1-1</title>
 	<script type="text/javascript" src="libs/three.js"></script>
-	<script type="text/javascript" src="libs/OBJLoader.js"></script>
-	<script type="text/javascript" src="libs/MTLLoader.js"></script>
-	<script type="text/javascript" src="libs/OBJMTLLoader.js"></script>
 	<style type="text/css">
 		body{
 			margin: 0;
@@ -35,17 +32,27 @@
         	renderer.setClearColor(new THREE.Color(0xb9b0fe, 1.0));
         	renderer.setSize(window.innerWidth, window.innerHeight);
 			
-			//导入模型
-			var mesh;
-			var loader = new THREE.OBJMTLLoader();
-			loader.load("libs/assets/building-obj.obj", "libs/assets/building-obj.mtl", function(object){
-				mesh = object;
-				mesh.translateX(100);
-				mesh.scale.set(20,20,20);
-				mesh.position.set(30,0,0);
-				scene.add(mesh);
-			})
-			
+			//导入平台模型
+			var mesh1, mesh2, mesh3;
+			var loader = new THREE.JSONLoader();
+			loader.load("libs/assets/t2.js", function(geometry, mat){
+				mesh1 = new THREE.Mesh(geometry, mat[0]);
+				mesh1.rotation.set(-Math.PI / 2, 0, Math.PI / 12);
+				scene.add(mesh1);
+			}, "libs/assets");
+			//导入柱子模型
+			loader.load("libs/assets/zs.js", function(geometry, mat){
+				mesh2 = new THREE.Mesh(geometry, mat[0]);
+				mesh2.rotation.set(-Math.PI / 2, 0, Math.PI / 12);
+				scene.add(mesh2);
+				//复制出另一个对象
+				var cloned = mesh2.geometry.clone()；
+				mesh3 = new THREE.Mesh(cloned, mat[0]);
+				mesh3.rotation.set(-Math.PI / 2, 0, Math.PI / 12);
+				mesh3.tranlateX(100);
+				scene.add(mesh3);
+			}, "libs/assets");
+
         	//创建聚光灯
 			var spotLight = new THREE.SpotLight(0xffffff);
         	spotLight.position.set(30,60,0);
