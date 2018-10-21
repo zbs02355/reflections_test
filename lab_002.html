@@ -3,7 +3,7 @@
 <head>
 	<title>lab1-1</title>
 	<script type="text/javascript" src="libs/three.js"></script>
-	<script type="text/javascript" src="libs/FlyControls.js"></script>
+	<script type="text/javascript" src="libs/FirstPersonControls.js"></script>
 	<script type="text/javascript" src="libs/OBJLoader.js"></script>
 	<script type="text/javascript" src="libs/MTLLoader.js"></script>
 	<script type="text/javascript" src="libs/OBJMTLLoader.js"></script>
@@ -25,9 +25,9 @@
 			scene = new THREE.Scene();
 			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);//设置相机的视椎体
 			/*设置摄像机参数*/
-			camera.position.x = 100;
-			camera.position.y = 100;
-			camera.position.z = 350;   //调整位置
+			camera.position.x = 10;
+			camera.position.y = 5;
+			camera.position.z = 0;   //调整位置
 			camera.lookAt(scene.position); //使相机始终朝向场景
 			scene.add(camera);
 			
@@ -46,13 +46,16 @@
 			}
 			loader.load("libs/assets/city.obj", "libs/assets/city.mtl", load);
 
-			//创建飞行控件
-			var flyControls = new THREE.FlyControls(camera); //创建并与相机绑定
-			flyControls.movementSpeed = 15; //运动速度
-			flyControls.domElement = document.querySelector("#WebGL-draw");
-			flyControls.rollSpeed = Math.PI / 20;
-			flyControls.autoForward = false; //禁止自动前进
-			flyControls.dragToLook = false; //禁止按下鼠标飞行
+			//创建第一人称控件
+			var camControls = new THREE.FirstPersonControls(camera); //创建并与相机绑定
+			camControls.lookSpeed = 0.1; //浏览速度
+			camControls.movementSpeed = 3.5; //移动速度
+			camControls.noFly = true; 
+			camControls.lookVertical = true;  //开启垂直浏览
+			camControls.constrainVertical = true; //开启垂直约束
+			//定义场景初次渲染时相机指向的位置
+			camControls.lon = 0;
+			camControls.lat = 0;
 
         	//创建聚光灯
 			var spotLight = new THREE.DirectionalLight(0xffffff);
@@ -71,7 +74,7 @@
 			renderScene();
 			function renderScene(){
 				var delta = clock.getDelta();
-				flyControls.update(delta); //设置飞行控件的更新时间
+				camControls.update(delta); //设置第一人称控件的更新时间
 				requestAnimationFrame(renderScene); //循环重绘
 				renderer.render(scene, camera);
 			}
