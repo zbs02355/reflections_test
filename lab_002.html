@@ -3,7 +3,7 @@
 <head>
 	<title>lab1-1</title>
 	<script type="text/javascript" src="libs/three.js"></script>
-	<script type="text/javascript" src="libs/TrackballControls.js"></script>
+	<script type="text/javascript" src="libs/FlyControls.js"></script>
 	<script type="text/javascript" src="libs/OBJLoader.js"></script>
 	<script type="text/javascript" src="libs/MTLLoader.js"></script>
 	<script type="text/javascript" src="libs/OBJMTLLoader.js"></script>
@@ -46,12 +46,13 @@
 			}
 			loader.load("libs/assets/city.obj", "libs/assets/city.mtl", load);
 
-			//创建轨迹球控件
-			var trackballControls = new THREE.TrackballControls(camera);
-			trackballControls.rotationSpeed = 1.0; //旋转的速度
-			trackballControls.zoomSpeed = 1.0;//缩放的速度
-			trackballControls.panSpeed = 1.0; //移动的速度
-			trackballControls.staticMoving = true; //旋转的稳定性
+			//创建飞行控件
+			var flyControls = new THREE.FlyControls(camera); //创建并与相机绑定
+			flyControls.movementSpeed = 15; //运动速度
+			flyControls.domElement = document.querySelector("#WebGL-draw");
+			flyControls.rollSpeed = Math.PI / 20;
+			flyControls.autoForward = false; //禁止自动前进
+			flyControls.dragToLook = false; //禁止按下鼠标飞行
 
         	//创建聚光灯
 			var spotLight = new THREE.DirectionalLight(0xffffff);
@@ -66,11 +67,11 @@
 			document.getElementById('WebGL-draw').appendChild(renderer.domElement); 
 			//将渲染器画布添加到DOM树中
 			/*开始渲染*/
+			var clock = new THREE.Clock();
 			renderScene();
 			function renderScene(){
-				var clock = new THREE.Clock(); 
 				var delta = clock.getDelta();
-				trackballControls.update(delta); //设置轨迹球的更新速度
+				flyControls.update(delta); //设置飞行控件的更新时间
 				requestAnimationFrame(renderScene); //循环重绘
 				renderer.render(scene, camera);
 			}
