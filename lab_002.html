@@ -27,30 +27,25 @@
 			camera.lookAt(scene.position); //使相机始终朝向场景
 			scene.add(camera);
 			
-			//创建一个WebGLDeferredRenderer渲染器
+			//创建一个WebGLRenderer渲染器
 			renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
         	renderer.setClearColor(new THREE.Color(0xb9b0fe, 1.0));
         	renderer.setSize(window.innerWidth, window.innerHeight);
 			
-			//导入平台模型
-			var mesh1, mesh2, mesh3;
+			//导入带动画的JSON模型
+			var meshAnim;
+			var clock = new THREE.Clock();
 			var loader = new THREE.JSONLoader();
-			loader.load("libs/assets/t2.js", function(geometry, mat){
-				mesh1 = new THREE.Mesh(geometry, mat[0]);
-				mesh1.rotation.set(-Math.PI / 2, 0, Math.PI / 12);
-				scene.add(mesh1);
-			}, "libs/assets");
-			//导入柱子模型
-			loader.load("libs/assets/zs.js", function(geometry, mat){
-				mesh2 = new THREE.Mesh(geometry, mat[0]);
-				mesh2.rotation.set(-Math.PI / 2, 0, Math.PI / 12);
-				scene.add(mesh2);
-				//复制出另一个对象
-				var cloned = mesh2.geometry.clone()；
-				mesh3 = new THREE.Mesh(cloned, mat[0]);
-				mesh3.rotation.set(-Math.PI / 2, 0, Math.PI / 12);
-				mesh3.tranlateX(100);
-				scene.add(mesh3);
+			loader.load("libs/assets/man.js", function(geometry, mat){
+				mat[0].morphTargets = true;
+				geometry.computeVertexNormals();
+				geometry.computeFaceNormals();
+				meshAnim = new THREE.MorphAnimMesh(geometry, mat[0]);
+				meshAnim.position.x = 0;
+				meshAnim.position.y = -20;
+				meshAnim.position.z = 0;
+				meshAnim.scale.set(20, 20, 20);
+				scene.add(meshAnim);
 			}, "libs/assets");
 
         	//创建聚光灯
@@ -67,6 +62,11 @@
 			/*开始渲染*/
 			renderScene();
 			function renderScene(){
+				var delta = clock.getDelta();
+				renderer.clear();
+				if(meshAnim){
+					meshAnim.updateAnimation(delta * 300);
+				}
 				requestAnimationFrame(renderScene); //循环重绘
 				renderer.render(scene, camera);
 			}
