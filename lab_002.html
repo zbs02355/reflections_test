@@ -3,7 +3,9 @@
 <head>
 	<title>lab1-1</title>
 	<script type="text/javascript" src="libs/three.js"></script>
-	
+	<script type="text/javascript" src="libs/OBJLoader.js"></script>
+	<script type="text/javascript" src="libs/MTLLoader.js"></script>
+	<script type="text/javascript" src="libs/OBJMTLLoader.js"></script>
 	<style type="text/css">
 		body{
 			margin: 0;
@@ -21,85 +23,44 @@
 			/*创建场景、摄像机、渲染器*/
 			scene = new THREE.Scene();
 			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);//设置相机的视椎体
+			/*设置摄像机参数*/
+			camera.position.x = -20;
+			camera.position.y = 15;
+			camera.position.z = 45;   //调整位置
+			camera.lookAt(scene.position); //使相机始终朝向场景
+			scene.add(camera);
 			
 			//创建一个WebGLDeferredRenderer渲染器
 			renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
-        	renderer.setClearColor(new THREE.Color(0xaaaaff, 1.0));
+        	renderer.setClearColor(new THREE.Color(0xb9b0fe, 1.0));
         	renderer.setSize(window.innerWidth, window.innerHeight);
-        	renderer.shadowMapEnabled = true;
-
-        	/*创建二维平面*/
-			var planeGeometry = new THREE.PlaneGeometry(100, 100); //建立70X70的平面
-			var planeMaterials = new THREE.MeshLambertMaterial({color: 0xffffff}); //创建暗淡的、无光的材质
-			var plane = new THREE.Mesh(planeGeometry, planeMaterials); //构建网格
-			plane.receiveShadow = true; //平面接受阴影
-			/*修改二维平面*/
-			plane.rotation.x = -0.5 * Math.PI;
-			plane.position.x = 0;
-			plane.position.y = -5;
-			plane.position.z = 0;
-			/*把平面加入到场景中*/
-			scene.add(plane);
-
-        	//创建聚光灯
-        	var spotColor = "#ffffff";
-			var spotLight = new THREE.DirectionalLight(spotColor);
-        	spotLight.position.set(30,10,-50);
-        	spotLight.castShadow = true;
-        	spotLight.shadowCameraNear = 0.1;
-        	spotLight.shadowCameraFar = 100;
-        	spotLight.shadowCameraFov = 50;
-        	spotLight.target = plane;
-        	spotLight.distance = 0;
-        	spotLight.shadowCameraNear = 2;
-        	spotLight.shadowCameraFar = 200;
-        	spotLight.shadowCameraLeft = -100;
-        	spotLight.shadowCameraRight = 100;
-        	spotLight.shadowCameraTop = 100;
-        	spotLight.shadowCameraBottom = -100;
-        	spotLight.shadowMapWidth = 2048;
-        	spotLight.shadowMapHeight = 2048;
-        	scene.add(spotLight);
-
-			//定义镜头光晕对象
-			var textureFlare0 = THREE.ImageUtils.loadTexture("lensflare0.png");
-			var flareColor = new THREE.Color(0xffaacc);
-			var lensFlare = new THREE.LensFlare(textureFlare0, 350, 0.0, THREE.AdditiveBlending, flareColor);
-			//加载另一种贴图
-			var textureFlare3 = THREE.ImageUtils.loadTexture("lensflare3.png");
-			//添加光圈
-			lensFlare.add(textureFlare3, 60, 0.6, THREE.AdditiveBlending);
-			lensFlare.add(textureFlare3, 70, 0.8, THREE.AdditiveBlending);
-			lensFlare.add(textureFlare3, 120, 0.9, THREE.AdditiveBlending);
-			//调整光晕对象的位置
-			lensFlare.position.copy(spotLight.position);
-			scene.add(lensFlare);
-
-			/*添加坐标轴*/
-			var axis = new THREE.AxisHelper(140);
-			scene.add(axis);
-
-			//创建立方体
-			var cubeGeometry = new THREE.CubeGeometry(10,10,10);
-			var cubeMaterial = new THREE.MeshLambertMaterial({color:0xff0000});
-			var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-			cube.position.x = 0;
-			cube.position.y = 0;
-			cube.position.z = 0;
-			cube.castShadow = true;
-			scene.add(cube);
 			
-			/*设置摄像机参数*/
-			camera.position.x = -20; 
-			camera.position.y = 15; 
-			camera.position.z = 45;   //调整位置
-			camera.lookAt(new THREE.Vector3(10,0,0)); //使相机始终朝向场景
+			//导入模型
+			var mesh;
+			var loader = new THREE.OBJMTLLoader();
+			loader.load("libs/assets/building-obj.obj", "libs/assets/building-obj.mtl", function(object){
+				mesh = object;
+				mesh.translateX(100);
+				mesh.scale.set(20,20,20);
+				mesh.position.set(30,0,0);
+				scene.add(mesh);
+			})
+			
+        	//创建聚光灯
+			var spotLight = new THREE.SpotLight(0xffffff);
+        	spotLight.position.set(30,60,0);
+        	spotLight.intensity = 2;
+        	scene.add(spotLight);
+        	//增加环境光
+        	var ambientLight = new THREE.AmbientLight("#1c1c1c");
+        	scene.add(ambientLight);
+
 			document.getElementById('WebGL-draw').appendChild(renderer.domElement); 
 			//将渲染器画布添加到DOM树中
 			/*开始渲染*/
 			renderScene();
 			function renderScene(){
-				//requestAnimationFrame(renderScene); //循环重绘
+				requestAnimationFrame(renderScene); //循环重绘
 				renderer.render(scene, camera);
 			}
 		}
