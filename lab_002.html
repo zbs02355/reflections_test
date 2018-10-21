@@ -21,9 +21,9 @@
 			scene = new THREE.Scene();
 			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);//设置相机的视椎体
 			/*设置摄像机参数*/
-			camera.position.x = -20;
+			camera.position.x = 25;
 			camera.position.y = 15;
-			camera.position.z = 45;   //调整位置
+			camera.position.z = 35;   //调整位置
 			camera.lookAt(scene.position); //使相机始终朝向场景
 			scene.add(camera);
 			
@@ -31,27 +31,58 @@
 			renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
         	renderer.setClearColor(new THREE.Color(0xb9b0fe, 1.0));
         	renderer.setSize(window.innerWidth, window.innerHeight);
+        	renderer.shadowMapEnabled = true;
 			
-			//导入带动画的JSON模型
-			var meshAnim;
-			var clock = new THREE.Clock();
+			//导入带骨骼动画的JSON模型
+			var mesh;
 			var loader = new THREE.JSONLoader();
-			loader.load("libs/assets/man.js", function(geometry, mat){
-				mat[0].morphTargets = true;
-				geometry.computeVertexNormals();
-				geometry.computeFaceNormals();
-				meshAnim = new THREE.MorphAnimMesh(geometry, mat[0]);
-				meshAnim.position.x = 0;
-				meshAnim.position.y = -20;
-				meshAnim.position.z = 0;
-				meshAnim.scale.set(20, 20, 20);
-				scene.add(meshAnim);
+			loader.load("libs/assets/manbone.js", function(geometry, mat){
+				mat = new THREE.MeshLambertMaterial({color:0xDEB887, skinning:true});
+				mesh = new THREE.SkinnedMesh(geometry, mat);
+				mesh.castShadow = true;
+				mesh.rotation.x = -0.5 * Math.PI;
+				mesh.scale.set(10,10,10);
+
+				mesh.skeleton.bones[20].rotateY(Math.PI/4);
+				mesh.skeleton.bones[21].rotateZ(-Math.PI/2);
+				mesh.skeleton.bones[36].rotateY(-Math.PI/4);
+				mesh.skeleton.bones[37].rotateZ(-Math.PI/2);
+				scene.add(mesh);
 			}, "libs/assets");
+
+			var flag = true;
+			var angle = Math.PI; //手臂摆动的角度
+			//为鼠标点击添加监听器
+			document.addEventListener("mousedown", onMouseDown, false);
+			function onMouseDown(event){
+				if(angle >= Math.PI/4){
+					flag = true;
+				};
+				if(angle <= -Math.PI/4){
+					flag = false;
+				};
+				if(flag){
+					angle -= Math.PI/10;
+				}else{
+					angle += Math.PI/10;
+				}
+				mesh.skeleton.bones[20].rotateZ(angle);
+				mesh.skeleton.bones[36].rotateZ(-angle);
+			}
+			//创建一个地面
+			planeGeometry = new THREE.PlaneGeometry(100, 100);
+			var planeMaterial = new THREE.MeshLambertMaterial({color:0x00ff00});
+			var plane = new THREE.Mesh(planeGeometry, planeMaterial);
+			plane.receivedShadow = true;
+			plane.position.set(0,0,0);
+			plane.rotation.x = -Math.PI / 2;
+			scene.add(plane);
 
         	//创建聚光灯
 			var spotLight = new THREE.SpotLight(0xffffff);
         	spotLight.position.set(30,60,0);
         	spotLight.intensity = 2;
+        	spotLight.castShadow = true;
         	scene.add(spotLight);
         	//增加环境光
         	var ambientLight = new THREE.AmbientLight("#1c1c1c");
@@ -62,11 +93,6 @@
 			/*开始渲染*/
 			renderScene();
 			function renderScene(){
-				var delta = clock.getDelta();
-				renderer.clear();
-				if(meshAnim){
-					meshAnim.updateAnimation(delta * 300);
-				}
 				requestAnimationFrame(renderScene); //循环重绘
 				renderer.render(scene, camera);
 			}
