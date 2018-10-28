@@ -23,8 +23,8 @@
 			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);//设置相机的视椎体
 			/*设置摄像机参数*/
 			camera.position.x = 0;
-			camera.position.y = 15;
-			camera.position.z = 45;   //调整位置
+			camera.position.y = 20;
+			camera.position.z = 30;   //调整位置
 			camera.lookAt(new THREE.Vector3(0,0,0)); //使相机始终朝向场景
 			scene.add(camera);
 			
@@ -36,39 +36,30 @@
 			
 			//创建地面
 			var floorTex = THREE.ImageUtils.loadTexture("libs/assets/floor-wood.jpg");
+			var shadow = THREE.ImageUtils.loadTexture("libs/assets/lm-1.png");
 			planeGeometry = new THREE.BoxGeometry(100,100,0.1,30);
-			var planeMaterial = new THREE.MeshPhongMaterial({color: 0x3c3c3c, map: floorTex});
+			var planeMaterial = new THREE.MeshBasicMaterial({color: 0x777777, map: floorTex, lightMap: shadow}); //指定固有色贴图和光照贴图
+			planeGeometry.faceVertexUvs[1] = planeGeometry.faceVertexUvs[0]; //明确光照贴图的UV坐标
 			var plane = new THREE.Mesh(planeGeometry, planeMaterial);
 			plane.rotation.x = -0.5 * Math.PI;
-			plane.position.set(0,-7.5,0);
+			plane.position.set(0,0,0);
 			//plane.receiveShadow = true;
 			scene.add(plane);
 
 			//创建模型
-			function createMesh(geom, imageFile, normal){
-				if (normal) {
-					var texture = THREE.ImageUtils.loadTexture('libs/assets/' + imageFile);
-					var normal_texture = THREE.ImageUtils.loadTexture('libs/assets/' + normal);
-					var mat = new THREE.MeshPhongMaterial();
-					mat.map = texture; //为材质指定贴图
-					mat.normalMap = normal_texture; //为材质指定法线贴图
-					var mesh = new THREE.Mesh(geom, mat);
-					return mesh;
-				} else {
-					var texture = THREE.ImageUtils.loadTexture('libs/assets/' + imageFile);
-					var mat = new THREE.MeshPhongMaterial();
-					mat.map = texture; //为材质指定贴图
-					var mesh = new THREE.Mesh(geom, mat);
-					return mesh;
-				}
-				
+			function createMesh(geom, imageFile){
+				var texture = THREE.ImageUtils.loadTexture('libs/assets/' + imageFile);
+				var mat = new THREE.MeshBasicMaterial();
+				mat.map = texture; //为材质指定贴图
+				var mesh = new THREE.Mesh(geom, mat);
+				return mesh;
 			}
 			/*立方体*/
-			var box_001 = createMesh(new THREE.BoxGeometry(15, 15, 15), "plaster.jpg");
-			box_001.position.x = 7.5;
+			var box_001 = createMesh(new THREE.BoxGeometry(12, 12, 12), "stone.jpg");
+			box_001.position.set(0.5, 6, -12);
 			scene.add(box_001);
-			var box_002 = createMesh(new THREE.BoxGeometry(15,15,15), "plaster.jpg", "plaster-normal.jpg");
-			box_002.position.x = -7.5;
+			var box_002 = createMesh(new THREE.BoxGeometry(6,6,6), "stone.jpg", "plaster-normal.jpg");
+			box_002.position.set(-13.5, 3, -6);
 			scene.add(box_002);
 
         	//创建聚光灯
@@ -88,29 +79,11 @@
         	sphereLightMesh.position.copy(directionalLight.position);
         	scene.add(sphereLightMesh);
 
-        	//创建灯光移动的路径
-        	var postSrc = {
-        		pos: -5
-        	};
-        	var tween = new TWEEN.Tween(postSrc).to({pos: 5}, 1000);
-        	var tweenBack = new TWEEN.Tween(postSrc).to({pos: -5}, 1000);
-        	tween.chain(tweenBack);
-        	tweenBack.chain(tweenBack);
-        	tween.start();
-        	var onUpdate = function (){
-        		var pos = this.pos;
-        		sphereLightMesh.position.x += pos;
-        	};
-        	tween.onUpdate(onUpdate);
-        	tweenBack.onUpdate(onUpdate);
-
 			document.getElementById('WebGL-draw').appendChild(renderer.domElement); 
 			//将渲染器画布添加到DOM树中
 			/*开始渲染*/
 			renderScene();
 			function renderScene(){
-				TWEEN.update();
-				directionalLight.position.copy(sphereLightMesh.position);
 				requestAnimationFrame(renderScene); //循环重绘
 				renderer.render(scene, camera);
 			}
