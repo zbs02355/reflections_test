@@ -3,10 +3,6 @@
 <head>
 	<title>lab1-1</title>
 	<script type="text/javascript" src="libs/three.js"></script>
-	<script type="text/javascript" src="libs/FirstPersonControls.js"></script>
-	<script type="text/javascript" src="libs/OBJLoader.js"></script>
-	<script type="text/javascript" src="libs/MTLLoader.js"></script>
-	<script type="text/javascript" src="libs/OBJMTLLoader.js"></script>
 	<style type="text/css">
 		body{
 			margin: 0;
@@ -19,50 +15,64 @@
 		
 	</div>
 	<script type="text/javascript">
-		var scene, camera, renderer, planeGeometry;
+		var scene, camera, renderer, planeGeometry, change1;
+		change1 = 0;
 		function init() {
 			/*创建场景、摄像机、渲染器*/
 			scene = new THREE.Scene();
 			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);//设置相机的视椎体
 			/*设置摄像机参数*/
-			camera.position.x = 10;
-			camera.position.y = 5;
-			camera.position.z = 0;   //调整位置
-			camera.lookAt(scene.position); //使相机始终朝向场景
+			camera.position.x = 20;
+			camera.position.y = 25;
+			camera.position.z = 60;   //调整位置
+			camera.lookAt(new THREE.Vector3(0,0,0)); //使相机始终朝向场景
 			scene.add(camera);
 			
 			//创建一个WebGLRenderer渲染器
 			renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
         	renderer.setClearColor(new THREE.Color(0xb9b0fe, 1.0));
         	renderer.setSize(window.innerWidth, window.innerHeight);
-        	renderer.shadowMapEnabled = true;
+        	//renderer.shadowMapEnabled = true;
 			
-			//导入OBJ模型
-			var mesh;
-			var loader = new THREE.OBJMTLLoader();
-			var load = function(object){
-				mesh = object;
-				scene.add(mesh);
-			}
-			loader.load("libs/assets/city.obj", "libs/assets/city.mtl", load);
+			//创建地面
+			planeGeometry = new THREE.PlaneGeometry(70,70);
+			var planeMaterial = new THREE.MeshLambertMaterial({color: 0x2F4F4F});
+			var plane = new THREE.Mesh(planeGeometry, planeMaterial);
+			plane.rotation.x = -0.5 * Math.PI;
+			plane.position.set(0,0,0);
+			//plane.receiveShadow = true;
+			scene.add(plane);
 
-			//创建第一人称控件
-			var camControls = new THREE.FirstPersonControls(camera); //创建并与相机绑定
-			camControls.lookSpeed = 0.1; //浏览速度
-			camControls.movementSpeed = 3.5; //移动速度
-			camControls.noFly = true; 
-			camControls.lookVertical = true;  //开启垂直浏览
-			camControls.constrainVertical = true; //开启垂直约束
-			//定义场景初次渲染时相机指向的位置
-			camControls.lon = 0;
-			camControls.lat = 0;
+			//创建模型
+			function createMesh(geom, imageFile){
+				var texture = THREE.ImageUtils.loadTexture('libs/assets/' + imageFile);
+				var mat = new THREE.MeshPhongMaterial();
+				mat.map = texture; //为材质指定贴图
+				var mesh = new THREE.Mesh(geom, mat);
+				return mesh;
+			}
+			/*多面体*/
+			var polyHegron = createMesh(new THREE.IcosahedronGeometry(5,0), 'metal-rust.jpg');
+			polyHegron.position.set(-25, 5, 0);
+			polyHegron.scale.set(2, 2, 2);
+			scene.add(polyHegron);
+			/*球体*/
+			var sphere = createMesh(new THREE.SphereGeometry(5, 20, 20), 'floor-wood.jpg');
+			sphere.position.y = 8;
+			sphere.scale.set(2,2,2);
+			scene.add(sphere);
+			/*立方体*/
+			var cube = createMesh(new THREE.BoxGeometry(5,5,5), 'brick-wall.jpg');
+			cube.position.set(25, 10, 15);
+			cube.scale.set(2,2,2);
+			scene.add(cube);
 
         	//创建聚光灯
-			var spotLight = new THREE.DirectionalLight(0xffffff);
-        	spotLight.position.set(30,60,0);
-        	spotLight.intensity = 2;
-        	spotLight.castShadow = true;
-        	scene.add(spotLight);
+			var directionalLight = new THREE.DirectionalLight(0xffffff);
+        	directionalLight.position.set(30,60,0);
+        	directionalLight.intensity = 2;
+        	//directionalLight.castShadow = true;
+        	scene.add(directionalLight);
         	//增加环境光
         	var ambientLight = new THREE.AmbientLight("#1c1c1c");
         	scene.add(ambientLight);
@@ -70,11 +80,18 @@
 			document.getElementById('WebGL-draw').appendChild(renderer.domElement); 
 			//将渲染器画布添加到DOM树中
 			/*开始渲染*/
-			var clock = new THREE.Clock();
 			renderScene();
 			function renderScene(){
-				var delta = clock.getDelta();
-				camControls.update(delta); //设置第一人称控件的更新时间
+				change1 += 0.1;
+				var change2 = change1 * 0.5;
+				var change3 = change1 * 1;
+				//三个模型分别以不同的速度选择
+				polyHegron.rotation.x = change1;
+				polyHegron.rotation.y = change1;
+				sphere.rotation.x = change2;
+				sphere.rotation.y = change2;
+				cube.rotation.x = change3;
+				cube.rotation.y = change3;
 				requestAnimationFrame(renderScene); //循环重绘
 				renderer.render(scene, camera);
 			}
