@@ -3,7 +3,6 @@
 <head>
 	<title>lab1-1</title>
 	<script type="text/javascript" src="libs/three.js"></script>
-	<script type="text/javascript" src="libs/tween.min.js"></script>
 	<style type="text/css">
 		body{
 			margin: 0;
@@ -20,11 +19,13 @@
 		function init() {
 			/*创建场景、摄像机、渲染器*/
 			scene = new THREE.Scene();
+			var scene_002 = new THREE.Scene();
 			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);//设置相机的视椎体
+			var camera_002 = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 			/*设置摄像机参数*/
 			camera.position.x = 0;
 			camera.position.y = 20;
-			camera.position.z = 30;   //调整位置
+			camera.position.z = 60;   //调整位置
 			camera.lookAt(new THREE.Vector3(0,0,0)); //使相机始终朝向场景
 			scene.add(camera);
 			
@@ -32,36 +33,64 @@
 			renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
         	renderer.setClearColor(new THREE.Color(0xb9b0fe, 1.0));
         	renderer.setSize(window.innerWidth, window.innerHeight);
+        	renderer.autoClear = false; 
         	//renderer.shadowMapEnabled = true;
 			
-			//创建地面
-			var floorTex = THREE.ImageUtils.loadTexture("libs/assets/floor-wood.jpg");
-			var shadow = THREE.ImageUtils.loadTexture("libs/assets/lm-1.png");
-			planeGeometry = new THREE.BoxGeometry(100,100,0.1,30);
-			var planeMaterial = new THREE.MeshBasicMaterial({color: 0x777777, map: floorTex, lightMap: shadow}); //指定固有色贴图和光照贴图
-			planeGeometry.faceVertexUvs[1] = planeGeometry.faceVertexUvs[0]; //明确光照贴图的UV坐标
-			var plane = new THREE.Mesh(planeGeometry, planeMaterial);
-			plane.rotation.x = -0.5 * Math.PI;
-			plane.position.set(0,0,0);
-			//plane.receiveShadow = true;
-			scene.add(plane);
-
 			//创建模型
-			function createMesh(geom, imageFile){
-				var texture = THREE.ImageUtils.loadTexture('libs/assets/' + imageFile);
-				var mat = new THREE.MeshBasicMaterial();
-				mat.map = texture; //为材质指定贴图
-				var mesh = new THREE.Mesh(geom, mat);
-				return mesh;
+			function createCubeMap(){
+				var path = "libs/assets/";
+				var format = ".jpg";
+				var urls = [
+					path + 'posx' + format, path+'negx'+format,
+					path + 'posy' + format, path+'negy'+format,
+					path + 'posz' + format, path+'negz'+format,
+				];
+				var textureCube = THREE.ImageUtils.loadTextureCube(urls, new THREE.CubeReflectionMapping());  //加载多材质对象
+				return textureCube;
 			}
-			/*立方体*/
-			var box_001 = createMesh(new THREE.BoxGeometry(12, 12, 12), "stone.jpg");
-			box_001.position.set(0.5, 6, -12);
-			scene.add(box_001);
-			var box_002 = createMesh(new THREE.BoxGeometry(6,6,6), "stone.jpg", "plaster-normal.jpg");
-			box_002.position.set(-13.5, 3, -6);
-			scene.add(box_002);
+			var textureCube = createCubeMap();
+			var shader = THREE.ShaderLib['cube'];
+			shader.uniforms["tCube"].value = textureCube;
+			var material = new THREE.ShaderMaterial({
+				fragmentShader: shader.fragmentShader,
+				vertexShader: shader.vertexShader,
+				uniforms: shader.uniforms,
+				depthWrite: false,
+				side: THREE.BackSide
+			});
+			cubeMesh = new THREE.Mesh(new THREE.BoxGeometry(100,100,100), material);
+			scene_002.add(cubeMesh);
 
+			//创建带反光的模型
+			function createMesh(geom, texture, normal){
+				geom.computeVertexNormals();
+				if(normal){
+					var texture_map = THREE.ImageUtils.loadTexture("libs/assets/" + texture);
+					var normal_map = THREE.ImageUtils.loadTexture("libs/assets/" + normal);
+					var mat = new THREE.MeshPhongMaterial({
+						map: texture_map, 
+						normal: normal_map
+					})
+					var mesh = new THREE.Mesh(geom, mat);
+					return mesh;
+				}
+				else{
+					var texture_map = THREE.ImageUtils.loadTexture("libs/assets/" + texture);
+					var mat = new THREE.MeshPhongMaterial({
+						map: texture_map
+					});
+					var mesh = new THREE.Mesh(geom, mat);
+					return mesh;
+				}
+			}
+			var sphere = createMesh(new THREE.SphereGeometry(10, 20, 20), "plaster.jpg");
+			sphere.material.envMap = textureCube; //指定环境贴图
+			sphere.position.x = 15;
+			scene.add(sphere);
+			var box = createMesh(new THREE.BoxGeometry(10, 15, 15), "plaster.jpg", "plaster-normal.jpg");
+			box.material.envMap = textureCube;
+			box.position.x = -15;
+			scene.add(box);
         	//创建聚光灯
 			var directionalLight = new THREE.SpotLight(0xffffff);
         	directionalLight.position.set(0,0,30);
@@ -72,19 +101,13 @@
         	var ambientLight = new THREE.AmbientLight("#ffffff");
         	scene.add(ambientLight);
 
-        	//创建一个小球模拟灯光
-        	var sphereLightGeometry = new THREE.SphereGeometry(2,20,20);
-        	var sphereLightMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
-        	var sphereLightMesh = new THREE.Mesh(sphereLightGeometry, sphereLightMaterial);
-        	sphereLightMesh.position.copy(directionalLight.position);
-        	scene.add(sphereLightMesh);
-
 			document.getElementById('WebGL-draw').appendChild(renderer.domElement); 
 			//将渲染器画布添加到DOM树中
 			/*开始渲染*/
 			renderScene();
 			function renderScene(){
 				requestAnimationFrame(renderScene); //循环重绘
+				renderer.render(scene_002, camera_002);
 				renderer.render(scene, camera);
 			}
 		}
