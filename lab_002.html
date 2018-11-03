@@ -3,6 +3,8 @@
 <head>
 	<title>lab1-1</title>
 	<script type="text/javascript" src="libs/three.js"></script>
+	<script type="text/javascript" src="libs/physi.js"></script>
+	<script type="text/javascript" src="libs/chroma.js"></script>
 	<style type="text/css">
 		body{
 			margin: 0;
@@ -15,100 +17,106 @@
 		
 	</div>
 	<script type="text/javascript">
-		var scene, camera, renderer, planeGeometry;
+		var scene, camera, renderer;
 		function init() {
-			/*创建场景、摄像机、渲染器*/
-			scene = new THREE.Scene();
-			var scene_002 = new THREE.Scene();
+			var scale = chroma.scale(['blue','red']);  //指定颜色范围
+			var stones = []; //用于存放骨牌
+			Physijs.scripts.worker = "libs/physijs_worker.js";  //指定任务线程
+			Physijs.scripts.ammo = "ammo.js"; //指定物理库
+			/*创建物理场景、摄像机、渲染器*/
+			scene = new Physijs.Scene();
+			scene.setGravity(new THREE.Vector3(0, -50, 0));  //设置重力方向和大小
+
 			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);//设置相机的视椎体
-			var camera_002 = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 			/*设置摄像机参数*/
 			camera.position.x = 0;
 			camera.position.y = 20;
-			camera.position.z = 60;   //调整位置
+			camera.position.z = 50;   //调整位置
 			camera.lookAt(new THREE.Vector3(0,0,0)); //使相机始终朝向场景
 			scene.add(camera);
 			
 			//创建一个WebGLRenderer渲染器
 			renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
-        	renderer.setClearColor(new THREE.Color(0xb9b0fe, 1.0));
+        	renderer.setClearColor(new THREE.Color(0xEEEEEE, 1.0));
         	renderer.setSize(window.innerWidth, window.innerHeight);
-        	renderer.autoClear = false; 
         	//renderer.shadowMapEnabled = true;
 			
-			//创建模型
-			function createCubeMap(){
-				var path = "libs/assets/";
-				var format = ".jpg";
-				var urls = [
-					path + 'posx' + format, path+'negx'+format,
-					path + 'posy' + format, path+'negy'+format,
-					path + 'posz' + format, path+'negz'+format,
-				];
-				var textureCube = THREE.ImageUtils.loadTextureCube(urls, new THREE.CubeReflectionMapping());  //加载多材质对象
-				return textureCube;
+			createGround();
+			requestAnimationFrame(renderScene);
+			createOtherModel(10);
+			requestAnimationFrame(renderScene); //循环重绘
+			//创建地面
+			function createGround(){
+				var ground_material = Physijs.createMaterial(
+					new THREE.MeshPhongMaterial({
+						map: THREE.ImageUtils.loadTexture("libs/assets/wood-2.jpg")
+					}), 0.9, 0.3
+					); //指定弹力和摩擦力
+				var ground = new Physijs.BoxMesh(new THREE.BoxGeometry(60, 1, 60), ground_material, 0);
+				/*左边的挡板*/
+				var borderLeft = new Physijs.BoxMesh(new THREE.BoxGeometry(2, 3, 60), ground_material, 0);
+				borderLeft.position.x = -31;
+				borderLeft.position.y = 2;
+				ground.add(borderLeft);
+				/*右边的挡板*/
+				var borderRight = new Physijs.BoxMesh(new THREE.BoxGeometry(2, 3, 60), ground_material, 0);
+				borderRight.position.x = 31;
+				borderRight.position.y = 2;
+				ground.add(borderRight);
+				/*前边的挡板*/
+				var borderTop = new Physijs.BoxMesh(new THREE.BoxGeometry(64,3,2), ground_material, 0);
+				borderTop.position.z = 30;
+				borderTop.position.y = 2;
+				ground.add(borderTop);
+				/*后边的挡板*/
+				var borderBottom = new Physijs.BoxMesh(new THREE.BoxGeometry(64,3,2), ground_material, 0);
+				borderBottom.position.z = -30;
+				borderBottom.position.y = 2;
+				ground.add(borderBottom);
+				scene.add(ground);
 			}
-			var textureCube = createCubeMap();
-			var shader = THREE.ShaderLib['cube'];
-			shader.uniforms["tCube"].value = textureCube;
-			var material = new THREE.ShaderMaterial({
-				fragmentShader: shader.fragmentShader,
-				vertexShader: shader.vertexShader,
-				uniforms: shader.uniforms,
-				depthWrite: false,
-				side: THREE.BackSide
-			});
-			cubeMesh = new THREE.Mesh(new THREE.BoxGeometry(100,100,100), material);
-			scene_002.add(cubeMesh);
+			//创建骨牌
+			function createOtherModel(num){
+				if(num > 0){
+					for (var i = 0; i < num; i++){
+						var stoneGeom = new THREE.BoxGeometry(0.6, 6, 2);
+						var stone = new Physijs.BoxMesh(stoneGeom, Physijs.createMaterial(new THREE.MeshPhongMaterial({
+							color: scale(Math.random()).hex(),
+							transparent: true,
+							opacity: 0.8
+						})));
+						var m = i * 3;
+						stone.position.set(m, 3.5, 0);
+						scene.add(stone);
+						stones.push(stone);
+					}
+				}
+			}
 
-			//创建带反光的模型
-			function createMesh(geom, texture, normal){
-				geom.computeVertexNormals();
-				if(normal){
-					var texture_map = THREE.ImageUtils.loadTexture("libs/assets/" + texture);
-					var normal_map = THREE.ImageUtils.loadTexture("libs/assets/" + normal);
-					var mat = new THREE.MeshPhongMaterial({
-						map: texture_map, 
-						normal: normal_map
-					})
-					var mesh = new THREE.Mesh(geom, mat);
-					return mesh;
-				}
-				else{
-					var texture_map = THREE.ImageUtils.loadTexture("libs/assets/" + texture);
-					var mat = new THREE.MeshPhongMaterial({
-						map: texture_map
-					});
-					var mesh = new THREE.Mesh(geom, mat);
-					return mesh;
-				}
+			//创建监听器
+			document.addEventListener('mousedown', click, false);
+			function click(event){
+				stones[0].rotation.z = -0.8;
+				stones[0].__dirtyRotation = true;
 			}
-			var sphere = createMesh(new THREE.SphereGeometry(10, 20, 20), "plaster.jpg");
-			sphere.material.envMap = textureCube; //指定环境贴图
-			sphere.position.x = 15;
-			scene.add(sphere);
-			var box = createMesh(new THREE.BoxGeometry(10, 15, 15), "plaster.jpg", "plaster-normal.jpg");
-			box.material.envMap = textureCube;
-			box.position.x = -15;
-			scene.add(box);
+			
         	//创建聚光灯
-			var directionalLight = new THREE.SpotLight(0xffffff);
-        	directionalLight.position.set(0,0,30);
-        	directionalLight.intensity = 1;
+			var directionalLight = new THREE.DirectionalLight(0xffffff);
+        	directionalLight.position.set(0,30,30);
         	//directionalLight.castShadow = true;
         	scene.add(directionalLight);
         	//增加环境光
-        	var ambientLight = new THREE.AmbientLight("#ffffff");
-        	scene.add(ambientLight);
+        	/*var ambientLight = new THREE.AmbientLight("#ffffff");
+        	scene.add(ambientLight);*/
 
 			document.getElementById('WebGL-draw').appendChild(renderer.domElement); 
 			//将渲染器画布添加到DOM树中
 			/*开始渲染*/
 			renderScene();
 			function renderScene(){
-				requestAnimationFrame(renderScene); //循环重绘
-				renderer.render(scene_002, camera_002);
+				requestAnimationFrame(renderScene);
 				renderer.render(scene, camera);
+				scene.simulate(undefined, 1);
 			}
 		}
 		function onResize(){
